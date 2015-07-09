@@ -114,7 +114,8 @@ static char *edit_message, *use_message;
 static char *fixup_message, *squash_message;
 static int all, also, interactive, patch_interactive, only, amend, signoff;
 static int edit_flag = -1; /* unspecified */
-static int quiet, verbose, no_verify, allow_empty, dry_run, renew_authorship;
+static int quiet, verbose, no_verify, allow_empty, dry_run;
+static int renew_authorship, renew_date;
 static int config_commit_verbose = -1; /* unspecified */
 static int no_post_rewrite, allow_empty_message;
 static char *untracked_files_arg, *force_date, *ignore_submodule_arg;
@@ -586,7 +587,7 @@ static void determine_author_info(struct strbuf *author_ident)
 		set_ident_var(&name, xmemdupz(ident.name_begin, ident.name_end - ident.name_begin));
 		set_ident_var(&email, xmemdupz(ident.mail_begin, ident.mail_end - ident.mail_begin));
 
-		if (ident.date_begin) {
+		if (ident.date_begin && !renew_date) {
 			struct strbuf date_buf = STRBUF_INIT;
 			strbuf_addch(&date_buf, '@');
 			strbuf_add(&date_buf, ident.date_begin, ident.date_end - ident.date_begin);
@@ -1189,6 +1190,8 @@ static int parse_and_validate_options(int argc, const char *argv[],
 		use_message = "HEAD";
 	if (!use_message && whence != FROM_CHERRY_PICK && renew_authorship)
 		die(_("--reset-author can be used only with -C, -c or --amend."));
+	if (!use_message && whence != FROM_CHERRY_PICK && renew_date)
+		die(_("--reset-date can be used only with -C, -c or --amend."));
 	if (use_message) {
 		use_message_buffer = read_commit_message(use_message);
 		if (!renew_authorship) {
@@ -1596,6 +1599,7 @@ int cmd_commit(int argc, const char **argv, const char *prefix)
 		OPT_STRING(0, "fixup", &fixup_message, N_("commit"), N_("use autosquash formatted message to fixup specified commit")),
 		OPT_STRING(0, "squash", &squash_message, N_("commit"), N_("use autosquash formatted message to squash specified commit")),
 		OPT_BOOL(0, "reset-author", &renew_authorship, N_("the commit is authored by me now (used with -C/-c/--amend)")),
+		OPT_BOOL(0, "reset-date", &renew_date, N_("the commit is authored right now (used with -C/-c/--amend)")),
 		OPT_BOOL('s', "signoff", &signoff, N_("add Signed-off-by:")),
 		OPT_FILENAME('t', "template", &template_file, N_("use specified template file")),
 		OPT_BOOL('e', "edit", &edit_flag, N_("force edit of commit")),
