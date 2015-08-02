@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+set -e
+
+flags="-O3 -fomit-frame-pointer -DNDEBUG -pipe"
+if [[ $1 = lto ]]; then
+    flags="$flags -flto"
+elif [[ $1 = nolto ]]; then
+    :
+else
+    echo 'Use LTO?' >&2
+    exit 1
+fi
+if [[ $2 = native ]]; then
+    flags="$flags -march=native"
+elif [[ $2 = nonnative ]]; then
+    :
+else
+    echo 'Use native?' >&2
+    exit 1
+fi
+
+prefix="$HOME/usr"
+
+cflags="-Wall $flags"
+ldflags="$cflags"
+
+git checkout joel-dev
+git rebase master
+
+git checkout joel-master
+git reset --hard "$(git tag | sed 's/.*-.*//; /^$/D' | sort -V | tail -1)"
+git cherry-pick master..joel-dev
+
+make configure
+./configure --with-libpcre --prefix="$prefix"
+make CFLAGS="$cflags" LDFLAGS="$ldflags"
+make install
+
+make doc && make install-doc install-html || true
+
+git checkout master
